@@ -1,0 +1,4 @@
+project_id = "mzevehqvqsovmijfycwf"
+
+[functions.recommend-events]
+verify_jwt = false
