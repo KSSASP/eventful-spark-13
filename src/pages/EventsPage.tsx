@@ -4,8 +4,9 @@ import Navbar from "@/components/Navbar";
 import EventCard from "@/components/EventCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Search, Filter } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search } from "lucide-react";
+import CountdownTimer from "@/components/CountdownTimer";
 
 const categories = ["All", "Workshop", "Hackathon", "Seminar", "Cultural", "Competition"];
 
@@ -35,11 +36,14 @@ const EventsPage = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  const now = new Date().toISOString();
   const filtered = events.filter((e) => {
     const matchesSearch = e.title.toLowerCase().includes(search.toLowerCase()) || e.description.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = category === "All" || e.category === category;
     return matchesSearch && matchesCategory;
   });
+  const upcoming = filtered.filter((e) => e.date >= now);
+  const past = filtered.filter((e) => e.date < now).reverse();
 
   return (
     <div className="min-h-screen bg-background">
@@ -80,16 +84,42 @@ const EventsPage = () => {
               <div key={i} className="h-[400px] animate-pulse rounded-lg bg-muted" />
             ))}
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="py-20 text-center text-muted-foreground">
-            <p className="text-lg">No events found matching your criteria.</p>
-          </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
-          </div>
+          <Tabs defaultValue="upcoming" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="upcoming">Upcoming ({upcoming.length})</TabsTrigger>
+              <TabsTrigger value="past">Past ({past.length})</TabsTrigger>
+            </TabsList>
+            <TabsContent value="upcoming">
+              {upcoming.length === 0 ? (
+                <div className="py-20 text-center text-muted-foreground">
+                  <p className="text-lg">No upcoming events found matching your criteria.</p>
+                </div>
+              ) : (
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {upcoming.map((event) => (
+                    <div key={event.id} className="space-y-3">
+                      <EventCard event={event} />
+                      <CountdownTimer targetDate={event.date} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            <TabsContent value="past">
+              {past.length === 0 ? (
+                <div className="py-20 text-center text-muted-foreground">
+                  <p className="text-lg">No past events found.</p>
+                </div>
+              ) : (
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {past.map((event) => (
+                    <EventCard key={event.id} event={event} isPast />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </div>

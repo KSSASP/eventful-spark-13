@@ -19,6 +19,7 @@ interface EventCardProps {
     is_featured: boolean;
     tags: string[];
   };
+  isPast?: boolean;
 }
 
 const categoryColors: Record<string, string> = {
@@ -29,7 +30,7 @@ const categoryColors: Record<string, string> = {
   Competition: "bg-success/10 text-success border-success/20",
 };
 
-const EventCard = ({ event }: EventCardProps) => {
+const EventCard = ({ event, isPast }: EventCardProps) => {
   const navigate = useNavigate();
   const seatsPercentage = (event.available_seats / event.total_seats) * 100;
   const isFull = event.available_seats === 0;
@@ -41,8 +42,14 @@ const EventCard = ({ event }: EventCardProps) => {
           src={event.image_url || "/placeholder.svg"}
           alt={event.title}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
         />
-        {event.is_featured && (
+        {isPast && (
+          <div className="absolute inset-0 flex items-center justify-center bg-foreground/50">
+            <Badge className="bg-muted text-muted-foreground text-sm">Completed</Badge>
+          </div>
+        )}
+        {event.is_featured && !isPast && (
           <Badge className="absolute left-3 top-3 bg-gradient-accent border-0 text-accent-foreground font-semibold">
             Featured
           </Badge>
@@ -80,8 +87,8 @@ const EventCard = ({ event }: EventCardProps) => {
         </div>
       </CardContent>
       <CardFooter className="px-5 pb-5 pt-0">
-        <Button className="w-full" onClick={() => navigate(`/events/${event.id}`)}>
-          View Details
+        <Button className="w-full" variant={isPast ? "outline" : "default"} onClick={() => navigate(`/events/${event.id}`)}>
+          {isPast ? "View Details" : "View Details"}
         </Button>
       </CardFooter>
     </Card>

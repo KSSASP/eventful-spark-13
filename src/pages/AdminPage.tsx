@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Users, Calendar, TrendingUp, BarChart3 } from "lucide-react";
+import { Users, Calendar, TrendingUp, BarChart3, Download } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { toast } from "sonner";
 
 const COLORS = ["hsl(168, 80%, 36%)", "hsl(38, 92%, 55%)", "hsl(210, 90%, 52%)", "hsl(0, 72%, 51%)", "hsl(152, 69%, 40%)"];
 
@@ -16,6 +17,7 @@ const AdminPage = () => {
   const [stats, setStats] = useState({ totalUsers: 0, totalEvents: 0, totalRegistrations: 0, attendanceRate: 0 });
   const [categoryData, setCategoryData] = useState<any[]>([]);
   const [popularEvents, setPopularEvents] = useState<any[]>([]);
+  const [regData, setRegData] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user || !roles.includes("admin")) {
@@ -37,7 +39,6 @@ const AdminPage = () => {
 
     setStats({ totalUsers: userCount || 0, totalEvents: eventCount || 0, totalRegistrations: regCount || 0, attendanceRate: rate });
 
-    // Category distribution
     const { data: events } = await supabase.from("events").select("category, total_seats, available_seats");
     if (events) {
       const catMap: Record<string, number> = {};
@@ -45,9 +46,9 @@ const AdminPage = () => {
       setCategoryData(Object.entries(catMap).map(([name, value]) => ({ name, value })));
     }
 
-    // Popular events
     const { data: regs } = await supabase.from("registrations").select("event_id, events(title, category)").eq("status", "confirmed");
     if (regs) {
+      setRegData(regs);
       const eventMap: Record<string, { title: string; count: number; category: string }> = {};
       regs.forEach((r: any) => {
         const eid = r.event_id;
@@ -58,11 +59,48 @@ const AdminPage = () => {
     }
   };
 
+  const exportCSV = async () => {
+    try {
+      const { data } = await supabase
+        .from("registrations")
+        .select("id, status, registered_at, user_id, events(title, category, date, venue)")
+        .eq("status", "confirmed");
+
+      if (!data || data.length === 0) {
+        toast.error("No data to export");
+        return;
+      }
+
+      const headers = ["Registration ID", "User ID", "Event Title", "Category", "Date", "Venue", "Status", "Registered At"];
+      const rows = data.map((r: any) => [
+        r.id, r.user_id, r.events?.title || "", r.events?.category || "",
+        r.events?.date || "", r.events?.venue || "", r.status, r.registered_at,
+      ]);
+
+      const csv = [headers.join(","), ...rows.map((r: string[]) => r.map((c) => `"${c}"`).join(","))].join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `registrations_${new Date().toISOString().split("T")[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("CSV exported!");
+    } catch {
+      toast.error("Export failed");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
-        <h1 className="mb-8 font-display text-3xl font-bold">Admin Dashboard</h1>
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="font-display text-3xl font-bold">Admin Dashboard</h1>
+          <Button onClick={exportCSV} variant="outline" className="gap-2">
+            <Download className="h-4 w-4" /> Export CSV
+          </Button>
+        </div>
 
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[

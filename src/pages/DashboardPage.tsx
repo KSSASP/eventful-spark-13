@@ -5,8 +5,10 @@ import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, MapPin, Sparkles, Loader2 } from "lucide-react";
+import { Calendar, MapPin, Sparkles, Loader2, User, Save } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -19,11 +21,19 @@ const DashboardPage = () => {
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingRecs, setLoadingRecs] = useState(false);
+  const [editProfile, setEditProfile] = useState({ full_name: "", interests: "" });
+  const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
     if (!user) { navigate("/auth"); return; }
     fetchRegistrations();
-  }, [user]);
+    if (profile) {
+      setEditProfile({
+        full_name: profile.full_name || "",
+        interests: (profile.interests || []).join(", "),
+      });
+    }
+  }, [user, profile]);
 
   const fetchRegistrations = async () => {
     const { data } = await supabase
@@ -44,7 +54,7 @@ const DashboardPage = () => {
       });
       if (error) throw error;
       if (data?.recommendations) setRecommendations(data.recommendations);
-    } catch (err: any) {
+    } catch {
       toast.error("Failed to get recommendations");
     } finally {
       setLoadingRecs(false);
@@ -65,6 +75,23 @@ const DashboardPage = () => {
     }
   };
 
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      const interests = editProfile.interests.split(",").map((s) => s.trim()).filter(Boolean);
+      const { error } = await supabase
+        .from("profiles")
+        .update({ full_name: editProfile.full_name, interests })
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      toast.success("Profile updated!");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   const confirmed = registrations.filter((r) => r.status === "confirmed");
   const waitlisted = registrations.filter((r) => r.status === "waitlisted");
 
@@ -76,14 +103,15 @@ const DashboardPage = () => {
           <h1 className="font-display text-3xl font-bold text-foreground">
             Welcome, {profile?.full_name || "there"}! 👋
           </h1>
-          <p className="text-muted-foreground">Manage your event registrations</p>
+          <p className="text-muted-foreground">Manage your event registrations and profile</p>
         </div>
 
         <Tabs defaultValue="registered" className="space-y-6">
-          <TabsList>
+          <TabsList className="flex-wrap">
             <TabsTrigger value="registered">My Events ({confirmed.length})</TabsTrigger>
             <TabsTrigger value="waitlisted">Waitlisted ({waitlisted.length})</TabsTrigger>
             <TabsTrigger value="recommendations" onClick={fetchRecommendations}>AI Recommendations</TabsTrigger>
+            <TabsTrigger value="profile">Edit Profile</TabsTrigger>
           </TabsList>
 
           <TabsContent value="registered">
@@ -205,6 +233,45 @@ const DashboardPage = () => {
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="profile">
+            <Card className="max-w-lg shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-display">
+                  <User className="h-5 w-5 text-primary" />
+                  Edit Profile
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input value={user?.email || ""} disabled className="bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    value={editProfile.full_name}
+                    onChange={(e) => setEditProfile((p) => ({ ...p, full_name: e.target.value }))}
+                    placeholder="Your name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="interests">Interests (comma-separated)</Label>
+                  <Input
+                    id="interests"
+                    value={editProfile.interests}
+                    onChange={(e) => setEditProfile((p) => ({ ...p, interests: e.target.value }))}
+                    placeholder="e.g. AI, Web Development, Design"
+                  />
+                  <p className="text-xs text-muted-foreground">Used for AI event recommendations</p>
+                </div>
+                <Button onClick={handleSaveProfile} disabled={savingProfile} className="gap-2">
+                  <Save className="h-4 w-4" /> {savingProfile ? "Saving..." : "Save Changes"}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
