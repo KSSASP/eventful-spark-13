@@ -57,9 +57,15 @@ const EventDetailPage = () => {
       } else {
         setExistingReg({ status: result.status, qr_code: result.qr_code, id: result.id });
         if (result.status === "confirmed") {
-          toast.success("Successfully registered! Check your dashboard for the QR code.");
+          toast.success("🎉 Registration Confirmed!", {
+            description: `You're registered for "${event.title}". Your QR code is ready in your dashboard.`,
+            duration: 8000,
+          });
         } else {
-          toast.info("Event is full. You've been added to the waitlist.");
+          toast.info("Added to Waitlist", {
+            description: `"${event.title}" is currently full. We'll notify you when a seat opens up.`,
+            duration: 8000,
+          });
         }
         // Refresh event data
         const { data: updated } = await supabase.from("events").select("*").eq("id", id).single();
