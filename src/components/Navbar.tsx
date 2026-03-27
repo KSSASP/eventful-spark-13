@@ -1,13 +1,15 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Calendar, LogOut, Menu, X } from "lucide-react";
+import { Calendar, LogOut, Menu, Moon, Sun, X } from "lucide-react";
 import { useState } from "react";
+import { useTheme } from "next-themes";
 
 const Navbar = () => {
   const { user, profile, roles, signOut } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   const isAdmin = roles.includes("admin");
   const isOrganizer = roles.includes("organizer");
@@ -39,6 +41,16 @@ const Navbar = () => {
               {l.label}
             </Link>
           ))}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            title="Toggle theme"
+            className="relative"
+          >
+            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          </Button>
           {user ? (
             <div className="flex items-center gap-3">
               <span className="text-sm text-muted-foreground">{profile?.full_name || user.email}</span>
@@ -69,6 +81,13 @@ const Navbar = () => {
                 {l.label}
               </Link>
             ))}
+            <Button
+              variant="ghost"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="justify-start"
+            >
+              {theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}
+            </Button>
             {user ? (
               <Button variant="ghost" onClick={handleSignOut} className="justify-start">Sign Out</Button>
             ) : (
