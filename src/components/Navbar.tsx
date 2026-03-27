@@ -1,13 +1,15 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Calendar, LogOut, Menu, X } from "lucide-react";
+import { Calendar, LogOut, Menu, Moon, Sun, X } from "lucide-react";
 import { useState } from "react";
+import { useTheme } from "next-themes";
 
 const Navbar = () => {
   const { user, profile, roles, signOut } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   const isAdmin = roles.includes("admin");
   const isOrganizer = roles.includes("organizer");
